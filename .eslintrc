@@ -1,0 +1,45 @@
+{
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "prettier",
+    ],
+    "parser": "@typescript-eslint/parser",
+    "env": {
+        "es6": true,
+        "browser": true,
+        "node": true,
+        "jest": true
+    },
+    "globals": {
+        "I18n": true
+    },
+    "plugins": ["@typescript-eslint"],
+    "parserOptions": {
+        "sourceType": "module",
+        "jsx": true
+    },
+    "overrides": [
+        {
+            "files": ["**/*.ts"],
+            "rules": {
+                "no-unused-vars": "off",
+                "@typescript-eslint/explicit-function-return-type": "off"
+            }
+        },
+        {
+            "files": ["**/__tests__/**/*.js", "**/__mocks__/**/*.js"],
+            "env": {
+                "jest": true,
+                "node": true,
+                "es6": true,
+            }
+        },
+        {
+            "files": ["webpack.config.js"],
+            "rules": {
+                "no-console": "off"
+            }
+        }
+    ]
+}
