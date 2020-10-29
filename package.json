@@ -1,6 +1,6 @@
 {
-  "name": "promise-state",
-  "version": "1.0.3",
+  "name": "promise-state-js",
+  "version": "1.0.1",
   "description": "Immutable snapshot representation of es6 promise",
   "keywords": [],
   "main": "dist/index.js",

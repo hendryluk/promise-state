@@ -1,18 +1,18 @@
-#promise-state
+# promise-state-js
 Immutable snapshot representation of es6 promise
  
-##Install
-`yarn add promise-state`
+## Install
+`yarn add promise-state-js`
 
 or
 
-`npm install --save redux-progress`
+`npm install --save promise-state-js`
 
-##Example
+## Examples
 ### React hooks example (Typescript)
 ```tsx
 import {useState} from "react";
-import PromiseState from 'promise-state';
+import PromiseState from 'promise-state-js';
 
 function UserDetails() {
     const [state, setState] = useState<PromiseState<User>>(null);
@@ -35,7 +35,7 @@ function UserDetails() {
 
 ### Redux+Thunk example (Typescript)
 ```ts
-import PromiseState from 'promise-state';
+import PromiseState from 'promise-state-js';
 import { ThunkDispatch } from 'redux-thunk';
 
 const FETCH_USERS = 'FETCH_USERS';
@@ -50,20 +50,18 @@ function userReducer(state = null, action): PromiseState<User> {
 }
 ```
 
-## Usage
-
-After you install this module (probably from npm) you can import base class called `Progress`
-
+### Async/await
+You can subscribe to a `promise`, as well as to an async function e.g.:
 ```javascript
-import Progress from 'redux-progress';
+PromiseState.subscribe(async function() {
+    const login = await fetch('/current-login');
+    return login ?? fetch(`/user/${login.userId}`);
+}, setState);
 ```
 
-`Progress` class provides useful utilities to handle different states in your application.
-
-In addition you can import Progress static props and methods as separate functions.
-
+## Usage
 ```javascript
-import {none, inProgress, success, fail, all} from 'redux-progress';
+import PromiseState from 'promise-state-js';
 ```
 
 ### Create instance
@@ -79,16 +77,16 @@ const pending = PromiseState.pending;
 ### Instance properties
 
 #### isResolved
-`Boolean`. True if the instance object has `success` status.
+`Boolean`. True if the instance object has `resolved` status.
 
 #### isRejected
-`Boolean`. True if the instance object has `failed` status.
+`Boolean`. True if the instance object has `rejected` status.
 
 #### isFulfilled
-`Boolean`. True if the instance object has `success` or `failed` status.
+`Boolean`. True if the instance object has `resolved` or `rejected` status.
 
 #### isPending
-`Boolean`. True if the instance object has `inProgress` status.
+`Boolean`. True if the instance object has `pending` status.
 
 #### value
 `R | void`. Obtains the value of resolved promise, else undefined.
@@ -99,7 +97,7 @@ const pending = PromiseState.pending;
 
 ### Instance methods
 
-#### map
+#### then
 `map<T>(mapper: (r: R) => T): PromiseState<T>`  
 Allows to map over a value stored inside `PromiseState` object. Mapper applied only to successive instances.
 Returns the new `PromiseState` object with transformed value inside.
@@ -151,117 +149,32 @@ PromiseState
 
 
 ### Composition
-`Progress` class has two static methods for composing many instances together.
+`PromiseState` class has two static methods for composing many instances together.
 API pretty similar to `PromiseState.all` and `PromiseState.race` methods.
 
 
 #### all
-`all: <I: Array<Progress<mixed>>>(...I)=> Progress<$TupleMap<I, ExtractResult>>`  
-Returns first `failed` or `inProgress` or `none` item from passed items.
-If all items are `success` then will return successive `Progress` object with an array of all items values
+`all(p1: PromiseState<P1>, p2: PromiseState<P2>, ...): PromiseState<[P1, P2, ...]>`
+If all items are `resolved` then will return a `PromiseState` containing an array of all the resolved items.
+Else will return `pending` or `rejected`.
 
 ```javascript
-Progress.all(
-  Progress.success({ a: "1" }),
-  Progress.success({ b: "2" })
-); // => the same that Progress.success([ { a: "1" }, { b: "2" } ])
-
-Progress.all(
-  Progress.success({}),
-  Progress.fail({a: '1'}),
-  Progress.inProgress
-); // => the same that Progress.fail({a: '1'})
+PromiseState.all(
+  PromiseState.resolve(42),
+  PromiseState.resolve('foo')
+).value; // == [42, 'foo']
 ```
-
 
 #### race
-`race: <T>(...Progress<T>[])=> Progress<T>`  
-Returns first complete item (`failed` or `success`).
+`race(p1: PromiseState<P1>, p2: PromiseState<P2>, ...): PromiseState<P1|P2|...>`  
+Returns first fulfilled outcome (`resolved` or `rejected`).
 If there are no complete items then will return the first item from arguments.
-If arguments empty will return `Progress.none`.
+If arguments empty will return `undefined`.
 
 ```javascript
-Progress.race(
-  Progress.success({ a: "1" }),
-  Progress.success({ b: "2" })
-); // => the same that Progress.success({ a: "1" })
-```
-
-
-## Usage with redux
-
- To wire up those utilities with redux you can use the `thunkProgress` function inside your actions.
- You can use this in pair with redux-thunk middleware.
-
- ```javascript
-import {thunkProgress} from 'redux-progress';
-import {createStore, combineReducers, applyMiddleware} from 'redux';
-import thunk from 'redux-thunk';
-
-// Reducer to handle async states
-const asyncReducer = (state = {}, {type, progress}) => {
-  switch (type) {
-    case 'MY_ASYNC_ACTION_NAME':
-      return {
-        loading: progress.inProgress,
-        result: progress.result,
-        error: progress.error
-      };
-
-    default:
-      return state;
-  }
-};
-
-const store = createStore(
-  combineReducers({asyncReducer}),
-  applyMiddleware(thunk)
-);
-
-// Action creator
-const doAsyncAction = () => {
-  return thunkProgress(
-    'MY_ASYNC_ACTION_NAME',
-    fetch('/my-url').then(response => response.json())
-  );
-};
-
-// Inside React component
-dispatch(doAsyncAction());
- ```
-
-Also could be useful to save the `Progress` instance to the state and use all
-available instances methods inside redux containers or components.
-
-```javascript
-const asyncReducer = (state = {}, {type, userProgress}) => {
-  switch (type) {
-    case 'SET_USER':
-      return {
-        user: userProgress
-      };
-
-    default:
-      return state;
-  }
-};
-
-// Inside React component or redux container
-const MyComponent = ({userName}) => {
-  return (
-    <div>
-      {userName.fold({
-         success: (u) => <div className="user-name">{u}</div>,
-         failed: (error) => <div className="user-error">{error}</div>,
-         loading: () => <span>"Loading ..."</span>
-       })}
-    </div>
-  );
-};
-
-export default connect(
-  state => ({
-    userName: state.user.map(u => u.name.toUpperCase())
-  })
-)(MyComponent);
+PromiseState.race(
+  PromiseState.pending,
+  PromiseState.resolve(42),
+  PromiseState.resolve('foo')
+).value; // == 42
 ```
